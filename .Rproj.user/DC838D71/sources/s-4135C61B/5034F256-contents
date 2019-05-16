@@ -1,0 +1,93 @@
+
+# Load libraries
+require(pacman)
+pacman::p_load(raster, rgdal, rgeos, stringr, velox, sf, randomForest, outliers, gtools, tidyverse)
+
+# Initial setup -----------------------------------------------------------
+g <- gc(reset = TRUE)
+rm(list = ls())
+options(scipen = 999)
+source('FunctionsRFclustering.R')
+
+# Functions to use --------------------------------------------------------
+rf.clust <- function(occ, nforest, ntrees, nVars, nclasses){
+  # occ = back_swd; nforest = 50; ntrees = 500; nVars = 8; nclasses = 2
+  datRF_presences <- occ[,3:ncol(occ)] %>% as.data.frame()
+  print(nrow(datRF_presences))
+  attach(datRF_presences)
+  no.forests <- nforest
+  no.trees <- ntrees
+  distRF_presences <- RFdist(datRF_presences, mtry1 = nVars, no.trees, no.forests, addcl1 = T, addcl2 = F, imp = T, oob.prox1 = T)
+  no.presencesclasses <- nclasses
+  labelRF <- pamNew(distRF_presences$cl1, no.presencesclasses)
+  print(table(labelRF))
+  clusterdata <- hclust(as.dist(distRF_presences$cl1), method = 'ward.D2')
+  return(list(labelRF, clusterdata))
+}
+dup_cell <- function(msk, occ){
+  occ <- st_coordinates(x = occ)
+  cellNum <- raster::extract(msk, occ[,1:2], cellnumbers = T) 
+  cells <- xyFromCell(msk, cellNum[,'cells'])
+  dupvec <- duplicated(cells[,c('x', 'y')])
+  occ_rmDupCell <- tbl_df(occ[!dupvec,])
+  occ_DupCell <- tbl_df(occ[dupvec,])
+  return(list(occ_rmDupCell, occ_DupCell))
+}
+
+# Load data ---------------------------------------------------------------
+pnt <- st_read('../data/shp/pnt/points_raw.shp')
+msk <- raster('../data/asc/bse/msk.asc')
+vrs <- paste0('bio', 1:19)
+vrs <- c(vrs, 'bio20_100mm', paste0('bio', 21:33))
+vrs <- paste0(vrs, '.asc')
+lyr <- list.files('../data/asc/clm/crn', pattern = '.asc$', full.names = TRUE) %>% 
+  grep(paste0(vrs, collapse = '|'), ., value = TRUE) %>% 
+  mixedsort() %>% 
+  stack()
+
+# Removing the duplicated by cells ----------------------------------------
+pnt_dup <- dup_cell(msk = msk, occ = pnt)[[1]]
+
+# Extracting the values from th estack ------------------------------------
+pnt_swd <- raster::extract(lyr, pnt_dup[,1:2]) %>% 
+  cbind(pnt_dup, .) %>%
+  as.tibble() %>% 
+  drop_na()
+
+norm <- scores(pnt_swd[,3:ncol(pnt_swd)], 'z') ; norm_na <- norm
+norm_na[abs(norm_na)>3.5]  <- NA 
+normpoints <- cbind(pnt_swd[,1:2], norm_na) %>%
+  tbl_df() %>% 
+  drop_na()
+write.csv(normpoints, '../data/pnt/tbl/normpoints.csv', row.names = FALSE)
+
+pnt_cln <- raster::extract(lyr, normpoints[,1:2]) %>% 
+  cbind(normpoints[,1:2], .) %>%
+  as.tibble() 
+write.csv(pnt_cln, '../data/pnt/tbl/occ_rmOtl.csv', row.names = FALSE)
+
+# Clustering --------------------------------------------------------------
+occ <- pnt_cln
+env_values <- as.matrix(occ[,3:35]); nrow(env_values)
+datRF <- as.data.frame(occ[,3:ncol(occ)]); nrow(datRF)
+d <- dist(datRF, method = "euclidean")
+rfClust <- rf.clust(occ = occ, nforest = 25, ntrees = 100, nVars = 8, nclasses = 5)
+labelRF <- rfClust[[1]]
+clusterdata <- rfClust[[2]]
+classdata <- cbind(pb = as.factor(labelRF), occ[,3:ncol(occ)])
+clusteredpresdata <- cbind(occ, cluster = labelRF) %>% na.omit() %>% tbl_df()
+no.clusters <- 5
+
+dir.create('../rds/run1', recursive = TRUE)
+run <- 'run1'
+saveRDS(object = datRF, file = paste0('../rds/', run, '/datRF.rds'))
+saveRDS(object = clusterdata, file = paste0('../rds/', run, '/clusterdata.rds'))
+saveRDS(object = env_values, file = paste0('../rds/', run, '/env_values.rds'))
+
+# Cluster occurences
+grouped <- as.data.frame(cbind(env_values, cluster = as.factor(labelRF))) %>% tbl_df()
+occ_cluster <- cbind(occ[,1:2], grouped[,'cluster'])
+saveRDS(object = occ_cluster, file = paste0('../rds/', run, '/occ_cluster.rds'))
+saveRDS(object = grouped, file = paste0('../rds/', run, '/grouped.rds'))
+
+

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1558019709062.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B79580F",
+    "lastKnownWriteTime" : 1558031639,
+    "last_content_update" : 1558031639275,
+    "path" : "//dapadfs/workspace_cluster_9/Coffee_Cocoa2/_cocoaAfrica/r/05_cluster.R",
+    "project_path" : "05_cluster.R",
+    "properties" : {
+        "cursorPosition" : "84,30",
+        "scrollLine" : "67",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1557253166494.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "14|32|30|0|\n31|34|82|0|\n83|28|98|0|\n",
+    "hash" : "0",
+    "id" : "FC94B843",
+    "lastKnownWriteTime" : 1557260644,
+    "last_content_update" : 1557260644308,
+    "path" : "D:/CC/_bd/_cocoaAfrica/r/03_bioclimFuture.R",
+    "project_path" : "03_bioclimFuture.R",
+    "properties" : {
+        "cursorPosition" : "129,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
